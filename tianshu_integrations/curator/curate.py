@@ -110,6 +110,7 @@ async def curate(
                     body=str(rewrite.get("body", card.context or f"{card.prefix} {card.text} {card.suffix}")),
                     tags=_merge_tags(card.tags, global_tags),
                     wikiLinks=rewrite.get("wikiLinks", []),
+                    sourceUrl=card.sourceUrl,
                 )
             )
         else:
@@ -122,6 +123,7 @@ async def curate(
                     body=body,
                     tags=card.tags,
                     wikiLinks=[],
+                    sourceUrl=card.sourceUrl,
                 )
             )
 
@@ -142,6 +144,7 @@ def _fallback_direct_write(
                 body=body,
                 tags=card.tags,
                 wikiLinks=[],
+                sourceUrl=card.sourceUrl,
             )
         )
     return result

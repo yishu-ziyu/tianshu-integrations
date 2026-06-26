@@ -48,6 +48,7 @@ class CuratedCard(BaseModel):
     tags: list[str] = Field(default_factory=list)
     wikiLinks: list[str] = Field(default_factory=list)
     mergedWith: str | None = None
+    sourceUrl: str | None = None  # preserved from RawCard so .md can show traceability
 
 
 class SkippedCard(BaseModel):

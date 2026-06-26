@@ -62,6 +62,28 @@ async def sync_recall_sticker(req: SyncRequest) -> SyncResponse:
 
     # 1. Vault validation
     vault = req.obsidianVaultPath
+    # Ensure requested vault is the same as (or under) the configured vault.
+    # This prevents a client from tricking the bridge into writing to
+    # arbitrary paths (e.g., /etc/ or another user's home).
+    env_vault = os.environ.get("OBSIDIAN_VAULT", "")
+    if env_vault:
+        try:
+            requested = Path(vault).resolve()
+            allowed = Path(env_vault).resolve()
+            if requested != allowed and not str(requested).startswith(str(allowed) + os.sep):
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "success": False,
+                        "error": f"vault path {vault} is not the configured OBSIDIAN_VAULT ({env_vault})",
+                    },
+                )
+        except (OSError, ValueError):
+            # Path resolution failed (e.g., invalid path syntax) — reject
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": f"invalid vault path: {vault}"},
+            )
     if not Path(vault).is_dir():
         return JSONResponse(
             status_code=400,
