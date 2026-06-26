@@ -1,0 +1,8 @@
+task_id: roadmap-md-4-tianshu-integrations-phase-2-6-week-1-4-qa-mini
+source_type: user_request
+source_ref: conversation
+received_at: "2026-06-26T22:28:49Z"
+input_artifacts:
+  - path: input/requirement.md
+    type: markdown
+    role: raw_requirement
