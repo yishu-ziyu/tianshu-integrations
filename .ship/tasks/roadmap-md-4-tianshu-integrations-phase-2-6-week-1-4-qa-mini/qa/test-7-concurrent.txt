@@ -1,0 +1,19 @@
+=== TEST 7: 5 concurrent syncs (P2 fix verification) ===
+All 5 requests completed.
+
+Per-request results:
+  concurrent-1: {"success":true,"curated":[{"cardId":"2001","title":"concurrent-1","body":" **concurrent-1** ","tags":[],"wikiLinks":[],"mergedWith":null,"sourceUrl":"u"}],"skipped":[],"errors":[],"durationMs":8,"obs
+  concurrent-2: {"success":true,"curated":[{"cardId":"2002","title":"concurrent-2","body":" **concurrent-2** ","tags":[],"wikiLinks":[],"mergedWith":null,"sourceUrl":"u"}],"skipped":[],"errors":[],"durationMs":7,"obs
+  concurrent-3: {"success":true,"curated":[{"cardId":"2003","title":"concurrent-3","body":" **concurrent-3** ","tags":[],"wikiLinks":[],"mergedWith":null,"sourceUrl":"u"}],"skipped":[],"errors":[],"durationMs":9,"obs
+  concurrent-4: {"success":true,"curated":[{"cardId":"2004","title":"concurrent-4","body":" **concurrent-4** ","tags":[],"wikiLinks":[],"mergedWith":null,"sourceUrl":"u"}],"skipped":[],"errors":[],"durationMs":7,"obs
+  concurrent-5: {"success":true,"curated":[{"cardId":"2005","title":"concurrent-5","body":" **concurrent-5** ","tags":[],"wikiLinks":[],"mergedWith":null,"sourceUrl":"u"}],"skipped":[],"errors":[],"durationMs":7,"obs
+
+All 5 cards present in .md?
+  ✓ concurrent-1
+  ✓ concurrent-2
+  ✓ concurrent-3
+  ✓ concurrent-4
+  ✓ concurrent-5
+
+.md file size after concurrency:
+-rw-r--r--@ 1 mahaoxuan  wheel  786 Jun 27 07:03 /tmp/qa-vault/Inbox/2026-06-27-recall.md

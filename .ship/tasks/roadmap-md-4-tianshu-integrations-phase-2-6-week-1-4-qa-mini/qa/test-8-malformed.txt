@@ -1,0 +1,18 @@
+=== TEST 8: malformed JSON request body ===
+{"detail":[{"type":"json_invalid","loc":["body",1],"msg":"JSON decode error","input":{},"ctx":{"error":"Expecting property name enclosed in double quotes"}}]}
+HTTP 422
+=== TEST 9: missing required field 'trigger' ===
+{"detail":[{"type":"missing","loc":["body","trigger"],"msg":"Field required","input":{"cards":[],"obsidianVaultPath":"/tmp/qa-vault"}}]}
+HTTP 422
+=== TEST 10: missing 'obsidianVaultPath' ===
+{"detail":[{"type":"missing","loc":["body","obsidianVaultPath"],"msg":"Field required","input":{"trigger":"manual","cards":[]}}]}
+HTTP 422
+=== TEST 11: cards missing sourceUrl ===
+{"detail":[{"type":"missing","loc":["body","cards",0,"sourceUrl"],"msg":"Field required","input":{"text":"x","timestamp":1}}]}
+HTTP 422
+=== TEST 12: very long text (10k chars) ===
+{"success":true,"curated":[{"cardId":"9999","title":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+=== TEST 13: XSS in card text (stored & returned) ===
+{"success":true,"curated":[{"cardId":"1234","title":"<script>alert(1)</script>","body":"<img src=x onerror=alert(2)>","tags":[],"wikiLinks":[],"mergedWith":null,"sourceUrl":"javascript:alert(3)"}],"skipped":[],"errors":[],"durationMs":7,"obsidianFilesWritten":["Inbox/2026-06-27-recall.md"]}--- check md for raw XSS ---
+## <script>alert(1)</script>
+

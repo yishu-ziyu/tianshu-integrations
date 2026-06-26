@@ -1,0 +1,27 @@
+=== TEST 2: vault path security ===
+path=/etc/  status=400  body={"success":false,"error":"vault path /etc/ is not the configured OBSIDIAN_VAULT (/tmp/qa-vault)"}
+path=/Users/somebody/Documents  status=400  body={"success":false,"error":"vault path /Users/somebody/Documents is not the configured OBSIDIAN_VAULT (/tmp/qa-vault)"}
+path=/tmp  status=400  body={"success":false,"error":"vault path /tmp is not the configured OBSIDIAN_VAULT (/tmp/qa-vault)"}
+path=/tmp/../etc  status=400  body={"success":false,"error":"vault path /tmp/../etc is not the configured OBSIDIAN_VAULT (/tmp/qa-vault)"}
+
+=== TEST 3: vault exact match (should succeed) ===
+{
+    "success": true,
+    "curated": [
+        {
+            "cardId": "200",
+            "title": "exact-match-test",
+            "body": " **exact-match-test** ",
+            "tags": [],
+            "wikiLinks": [],
+            "mergedWith": null,
+            "sourceUrl": "u"
+        }
+    ],
+    "skipped": [],
+    "errors": [],
+    "durationMs": 8,
+    "obsidianFilesWritten": [
+        "Inbox/2026-06-27-recall.md"
+    ]
+}

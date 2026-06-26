@@ -1,0 +1,55 @@
+=== TEST 4: empty text card (P3 deferred) ===
+{
+    "success": true,
+    "curated": [
+        {
+            "cardId": "1",
+            "title": "",
+            "body": " **** ",
+            "tags": [],
+            "wikiLinks": [],
+            "mergedWith": null,
+            "sourceUrl": "u"
+        }
+    ],
+    "skipped": [],
+    "errors": [],
+    "durationMs": 11,
+    "obsidianFilesWritten": [
+        "Inbox/2026-06-27-recall.md"
+    ]
+}
+--- file section ---
+## eBPF
+
+类似eBPF机制
+--
+## service mesh
+
+微服务通信层
+--
+## sidecar
+
+sidecar pattern
+--
+## circuit breaker
+
+熔断器模式
+--
+## BFF
+
+backend for frontend
+--
+## exact-match-test
+
+ **exact-match-test** 
+--
+## 
+
+ **** 
+
+=== TEST 5: 100-card batch (performance) ===
+100-card batch took: 10ms
+
+=== TEST 6: 500-card batch (stress) ===
+500-card batch took: 9ms

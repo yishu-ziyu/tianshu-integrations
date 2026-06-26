@@ -1,0 +1,75 @@
+=== TEST 1: 5-card happy path (spec AC#1) ===
+* Uses proxy env variable no_proxy == '127.0.0.1,localhost'
+*   Trying 127.0.0.1:7742...
+* Connected to 127.0.0.1 (127.0.0.1) port 7742
+> POST /sync/recall-sticker HTTP/1.1
+> Host: 127.0.0.1:7742
+> User-Agent: curl/8.7.1
+> Accept: */*
+> Content-Type: application/json
+> Content-Length: 678
+> 
+} [678 bytes data]
+* upload completely sent off: 678 bytes
+< HTTP/1.1 200 OK
+< date: Fri, 26 Jun 2026 23:02:58 GMT
+< server: uvicorn
+< content-length: 838
+< content-type: application/json
+< 
+{ [838 bytes data]
+* Connection #0 to host 127.0.0.1 left intact
+{"success":true,"curated":[{"cardId":"100","title":"eBPF","body":"类似eBPF机制","tags":[],"wikiLinks":[],"mergedWith":null,"sourceUrl":"https://example.com/p1"},{"cardId":"101","title":"service mesh","body":"微服务通信层","tags":[],"wikiLinks":[],"mergedWith":null,"sourceUrl":"https://example.com/p2"},{"cardId":"102","title":"sidecar","body":"sidecar pattern","tags":[],"wikiLinks":[],"mergedWith":null,"sourceUrl":"https://example.com/p3"},{"cardId":"103","title":"circuit breaker","body":"熔断器模式","tags":[],"wikiLinks":[],"mergedWith":null,"sourceUrl":"https://example.com/p4"},{"cardId":"104","title":"BFF","body":"backend for frontend","tags":[],"wikiLinks":[],"mergedWith":null,"sourceUrl":"https://example.com/p5"}],"skipped":[],"errors":[],"durationMs":35,"obsidianFilesWritten":["Inbox/2026-06-27-recall.md"]}--- file content ---
+2026-06-27-recall.md
+---
+date: 2026-06-27
+tags: [recall-sticker]
+source: recall-sticker-sidepanel
+---
+
+# Recall Sticker · 2026-06-27
+
+## eBPF
+
+类似eBPF机制
+
+来源: https://example.com/p1
+
+
+---
+
+## service mesh
+
+微服务通信层
+
+来源: https://example.com/p2
+
+
+---
+
+## sidecar
+
+sidecar pattern
+
+来源: https://example.com/p3
+
+
+---
+
+## circuit breaker
+
+熔断器模式
+
+来源: https://example.com/p4
+
+
+---
+
+## BFF
+
+backend for frontend
+
+来源: https://example.com/p5
+
+
+
