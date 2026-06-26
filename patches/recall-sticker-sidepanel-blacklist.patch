@@ -1,0 +1,17 @@
+--- /Users/mahaoxuan/Documents/trae_projects/recall-sticker/Recall-Sticker/sidepanel.js	2026-04-29 17:17:26
++++ /tmp/new-sidepanel.js	2026-06-27 06:49:27
+@@ -43,8 +43,13 @@
+     (!targetSticker.timestamp || storedSticker.timestamp === targetSticker.timestamp);
+ }
+ 
++// tianshu-integrations: blacklist non-sticker chrome.storage keys
++const STORAGE_KEY_BLACKLIST = new Set([
++  'tags', 'obsidianVaultPath', 'lastSyncTime', 'mistake_log_v1',
++]);
++
+ function isStickerCollection(storageKey, value) {
+-  return storageKey !== STORAGE_KEYS.TAGS && Array.isArray(value);
++  return !STORAGE_KEY_BLACKLIST.has(storageKey) && Array.isArray(value);
+ }
+ 
+ document.addEventListener('DOMContentLoaded', () => {

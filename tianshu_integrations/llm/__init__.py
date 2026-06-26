@@ -1,0 +1,1 @@
+"""LLM module: MiniMax OpenAI-protocol client + mock for tests."""

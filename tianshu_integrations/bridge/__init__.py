@@ -1,0 +1,1 @@
+"""Bridge module: FastAPI HTTP service + CLI."""

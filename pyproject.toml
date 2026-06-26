@@ -1,0 +1,40 @@
+[project]
+name = "tianshu-integrations"
+version = "0.1.0"
+description = "Bridge service connecting Recall Sticker / Deep Reader / focus-quiz with Obsidian Vault"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    {name = "Tianshu Integrations Team"},
+]
+
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.0.0",
+    "httpx>=0.27.0",
+    "openai>=1.57.4",
+    "pyyaml>=6.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.21",
+]
+
+[project.scripts]
+tianshu-bridge = "tianshu_integrations.bridge.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["tianshu_integrations*"]
+exclude = ["tests*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

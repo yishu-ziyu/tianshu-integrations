@@ -1,0 +1,1 @@
+"""Obsidian module: write .md files to vault with frontmatter."""

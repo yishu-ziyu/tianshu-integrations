@@ -1,0 +1,23 @@
+--- /Users/mahaoxuan/Documents/trae_projects/recall-sticker/Recall-Sticker/manifest.json	2026-04-29 17:34:29
++++ /tmp/new-manifest.json	2026-06-27 06:48:17
+@@ -7,7 +7,8 @@
+     "activeTab",
+     "storage",
+     "sidePanel",
+-    "tabs"
++    "tabs",
++    "downloads"
+   ],
+   "side_panel": {
+     "default_path": "sidepanel.html"
+@@ -42,5 +43,8 @@
+         "styles.css"
+       ]
+     }
++  ],
++  "host_permissions": [
++    "http://127.0.0.1:7733/*"
+   ]
+-}
++}
+\ No newline at end of file
