@@ -19,6 +19,10 @@ DEFAULT_PORT = 7733
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for tianshu-bridge.
+
+    Returns parsed args with vault (str path), port (int), host (str).
+    """
     parser = argparse.ArgumentParser(
         prog="tianshu-bridge",
         description="Tianshu Integrations Bridge — connect Recall Sticker / Deep Reader with Obsidian Vault",

@@ -7,7 +7,6 @@ Writes curated cards to vault/Inbox/YYYY-MM-DD-recall.md with:
 - Append to existing daily file (don't overwrite)
 """
 
-import os
 import re
 from datetime import datetime
 from pathlib import Path

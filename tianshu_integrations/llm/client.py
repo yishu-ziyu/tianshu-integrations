@@ -31,7 +31,10 @@ class MiniMaxClient:
         self.model = model
 
     async def chat(self, prompt: str, max_tokens: int = 2000) -> str:
-        """Call MiniMax M3 chat completion. Returns the assistant content."""
+        """Call MiniMax M3 chat completion. Returns the assistant content.
+
+        Raises on network errors or non-2xx responses (caller handles).
+        """
         r = await self.client.chat.completions.create(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
