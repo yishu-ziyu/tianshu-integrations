@@ -32,7 +32,7 @@ export class QuizGenerator {
       return [];
     }
     const truncated = content.slice(0, 6000);
-    const prompt = PROmt.replace('{content}', truncated);
+    const prompt = PROMPT.replace('{content}', truncated);
     try {
       const raw = await minimaxClient.chat(prompt, 2000);
       const parsed = parseQuizResponse(raw);
@@ -110,7 +110,7 @@ function normalizeP1Question(rawQuestion: any, idx = 0): Question | null {
     ? rawQuestion.type
     : (ALLOWED_TYPES[idx] || 'trap');
 
-  const answerMode = rawQuestion.answerMode === 'open' ? 'open' : 'multiple_choice';
+  const answerMode: 'open' | 'multiple_choice' = rawQuestion.answerMode === 'open' ? 'open' : 'multiple_choice';
 
   const baseFields = {
     type,
