@@ -1,48 +1,51 @@
 """Curator: organize Recall Sticker cards via M2.1.
 
-Two-phase approach (Phase 1):
-- Phase A (curate): sanitize context + call M2.1 + parse response
-- Phase B (per-card fallback): if M2.1 fails or returns no rewrites,
-  write each card with its own context (no LLM transformation).
+Two-phase approach (Week 2):
+- Phase A (curate_phase_a): batch-level tag + merge suggestions (1 M2.1 call)
+- Phase B (curate_phase_b): single-card wiki link suggestions from vault (per-card M2.1 call)
+- orchestrate(curate): runs A, builds CuratedCard, then per-card runs B
+
+Reasoning model handling:
+- Both M2.1 and M3 emit <think>...</think> blocks
+- We strip them via extractContent() BEFORE passing to JSON parser
 
 Per-card isolation: one card's failure does not block the batch.
 """
 
 import re
+from pathlib import Path
+
+from pydantic import BaseModel, Field
 
 from tianshu_integrations.bridge.schemas import CardError, CuratedCard, RawCard
 from tianshu_integrations.curator.parsers import parse_curation_response
+from tianshu_integrations.curator.prompts import (
+    build_phase_a_prompt,
+    build_phase_b_prompt,
+)
+from tianshu_integrations.llm.client import extractContent
 
 
 CLOZE_PATTERN = re.compile(r"\{\{c\d+::(.*?)\}\}")
-PROMPT_TEMPLATE = """你是知识整理助手。给定以下 recall-sticker 卡片:
 
-{cards_text}
 
-对每张卡返回 JSON:
-{{
-  "tags": ["tag1", "tag2"],       // 本批所有 unique tag
-  "rewrites": [
-    {{
-      "cardId": "id1",
-      "title": "简短标题",
-      "body": "改写后的 Markdown 内容",
-      "wikiLinks": []
-    }}
-  ]
-}}
+class MergeProposal(BaseModel):
+    """Phase A merge suggestion: source cardId should be merged into target cardId."""
+    source: str
+    target: str
+    reason: str = ""
 
-要求:
-- tag 语义化(英文小写或中文),1-3 个
-- title ≤15 字,body ≤100 字
-- 如果多张卡主题相同,合并到同一组 tags
-"""
+
+class PhaseAResult(BaseModel):
+    """Output of Phase A: batch-level organization."""
+    batch_tags: list[str] = Field(default_factory=list)
+    card_tags: dict[str, list[str]] = Field(default_factory=dict)
+    merges: list[MergeProposal] = Field(default_factory=list)
 
 
 def sanitize_context(card: RawCard) -> RawCard:
     """Strip Anki Cloze markers {{c1::text}} → [text] to avoid prompt injection."""
     if card.context:
-        # Use model_copy to stay immutable
         cleaned = CLOZE_PATTERN.sub(r"[\1]", card.context)
         card = card.model_copy(update={"context": cleaned})
     return card
@@ -54,86 +57,183 @@ def generate_card_id(card: RawCard) -> str:
     return f"{card.timestamp}_{text_prefix}"
 
 
-async def curate(
+async def curate_phase_a(
     cards: list[RawCard],
     llm_client,
-) -> tuple[list[CuratedCard], list[CardError]]:
-    """Curate a batch of cards. Returns (curated, errors).
+) -> PhaseAResult:
+    """Phase A: batch-level tag + merge suggestions (1 M2.1 call).
 
-    Per-card isolation: if M2.1 fails entirely, all cards fall back to
-    direct write. If M2.1 returns partial rewrites, missing cards
-    also fall back.
+    Returns empty PhaseAResult on LLM failure (caller falls back to direct write).
     """
     if not cards:
-        return [], []
+        return PhaseAResult()
 
-    # Sanitize context for all cards (avoid Anki Cloze → M2.1 confusion)
     sanitized = [sanitize_context(c) for c in cards]
-
-    # Generate ids if missing
     for card in sanitized:
         if not card.id:
             card.id = generate_card_id(card)
 
-    # Build prompt
     cards_text = "\n".join(
         f"[{c.id}] text={c.text!r} ctx={c.context!r} src={c.sourceUrl}"
         for c in sanitized
     )
-    prompt = PROMPT_TEMPLATE.format(cards_text=cards_text)
-
-    # Call LLM
-    curated: list[CuratedCard] = []
-    errors: list[CardError] = []
+    prompt = build_phase_a_prompt(cards_text)
 
     try:
         raw = await llm_client.chat(prompt)
-    except Exception as e:
-        # Whole batch failed — return errors for all cards
-        for c in sanitized:
-            errors.append(CardError(cardId=c.id or "", message=f"LLM call failed: {e}"))
-        return _fallback_direct_write(sanitized, errors=[]), errors
+        # Strip <think>...</think> blocks (M2.1 / M3 reasoning)
+        cleaned = extractContent(raw)
+        parsed = parse_curation_response(cleaned)
+    except Exception:
+        # Caller will fall back; return empty PhaseAResult
+        return PhaseAResult()
 
-    # Parse LLM response (multi-layer fallback)
-    parsed = parse_curation_response(raw)
-    rewrites_by_id = {r.get("cardId"): r for r in parsed.get("rewrites", []) if r.get("cardId")}
-    global_tags = parsed.get("tags", [])[:3]
+    # parse_curation_response may return "tags" + "rewrites" (legacy single schema)
+    # or be missing our Phase A fields. Normalize:
+    batch_tags = parsed.get("batch_tags", [])
+    if not batch_tags and "tags" in parsed:
+        # Old single-prompt schema — fall back to using top-level tags as batch_tags
+        batch_tags = parsed.get("tags", [])[:3]
+    card_tags = parsed.get("card_tags", {})
 
-    # Build curated cards
+    merges = []
+    for m in parsed.get("merges", []):
+        if isinstance(m, dict) and "source" in m and "target" in m:
+            merges.append(MergeProposal(
+                source=m["source"],
+                target=m["target"],
+                reason=m.get("reason", ""),
+            ))
+
+    return PhaseAResult(
+        batch_tags=batch_tags,
+        card_tags=card_tags,
+        merges=merges,
+    )
+
+
+async def curate_phase_b(
+    card: CuratedCard,
+    vault_existing_notes: list[str],
+    llm_client,
+) -> list[str]:
+    """Phase B: single-card wiki link suggestions (per-card M2.1 call).
+
+    Returns [] on failure (curator never crashes on wiki link issues).
+    """
+    prompt = build_phase_b_prompt(
+        card_text=card.title,
+        card_context=card.body,
+        card_source=card.sourceUrl or "",
+        existing_notes=vault_existing_notes,
+    )
+    try:
+        raw = await llm_client.chat(prompt)
+        cleaned = extractContent(raw)
+        parsed = parse_curation_response(cleaned)
+    except Exception:
+        return []
+
+    links = parsed.get("wikiLinks", [])
+    # Normalize: accept both "[[path]]" and "path" forms
+    normalized = []
+    for link in links:
+        if isinstance(link, str):
+            if link.startswith("[[") and link.endswith("]]"):
+                normalized.append(link)
+            else:
+                normalized.append(f"[[{link}]]")
+    return normalized
+
+
+def scan_vault_existing_notes(vault_path: str) -> list[str]:
+    """Scan vault for existing .md files. Return path-style names (without .md).
+
+    Used by Phase B to suggest wiki links.
+    """
+    vault = Path(vault_path)
+    if not vault.is_dir():
+        return []
+    notes = []
+    for md_file in vault.rglob("*.md"):
+        # Skip our own output
+        if ".recall-sync.lock" in md_file.name:
+            continue
+        rel = md_file.relative_to(vault)
+        # Strip .md extension
+        notes.append(str(rel.with_suffix("")))
+    return sorted(notes)
+
+
+async def curate(
+    cards: list[RawCard],
+    llm_client,
+    vault_path: str | None = None,
+) -> tuple[list[CuratedCard], list[CardError]]:
+    """Orchestrate Phase A + Phase B + write.
+
+    Returns (curated, errors). Per-card isolation throughout.
+
+    If vault_path is provided, Phase B uses it to suggest wiki links.
+    Otherwise Phase B is skipped (empty wikiLinks).
+    """
+    if not cards:
+        return [], []
+
+    sanitized = [sanitize_context(c) for c in cards]
     for card in sanitized:
-        rewrite = rewrites_by_id.get(card.id)
-        if rewrite:
-            curated.append(
-                CuratedCard(
-                    cardId=card.id,
-                    title=str(rewrite.get("title", card.text))[:30],
-                    body=str(rewrite.get("body", card.context or f"{card.prefix} {card.text} {card.suffix}")),
-                    tags=_merge_tags(card.tags, global_tags),
-                    wikiLinks=rewrite.get("wikiLinks", []),
-                    sourceUrl=card.sourceUrl,
-                )
-            )
-        else:
-            # No rewrite for this card — direct write fallback
-            body = card.context or f"{card.prefix} **{card.text}** {card.suffix}"
-            curated.append(
-                CuratedCard(
-                    cardId=card.id,
-                    title=card.text,
-                    body=body,
-                    tags=card.tags,
-                    wikiLinks=[],
-                    sourceUrl=card.sourceUrl,
-                )
-            )
+        if not card.id:
+            card.id = generate_card_id(card)
 
-    return curated, errors
+    # Phase A: batch-level organization
+    phase_a = await curate_phase_a(sanitized, llm_client)
+
+    # Build CuratedCard for each input card
+    curated: list[CuratedCard] = []
+    for card in sanitized:
+        # Apply Phase A results
+        card_tags = phase_a.card_tags.get(card.id, [])
+        all_tags = _merge_tags(card.tags, card_tags, phase_a.batch_tags)
+
+        body = card.context or f"{card.prefix} **{card.text}** {card.suffix}"
+        title = card.text  # Phase A could refine this later
+
+        # Track merged sources (cards pointing to this one)
+        merged_sources = []
+        for merge in phase_a.merges:
+            if merge.target == card.id:
+                merged_sources.append(merge.source)
+
+        c = CuratedCard(
+            cardId=card.id,
+            title=title,
+            body=body,
+            tags=all_tags,
+            wikiLinks=[],  # Phase B fills this
+            mergedWith=merged_sources[0] if merged_sources else None,
+            sourceUrl=card.sourceUrl,
+        )
+        curated.append(c)
+
+    # Phase B: per-card wiki link suggestions (only if vault_path given)
+    if vault_path:
+        try:
+            existing_notes = scan_vault_existing_notes(vault_path)
+        except Exception:
+            existing_notes = []
+        for c in curated:
+            c.wikiLinks = await curate_phase_b(c, existing_notes, llm_client)
+
+    return curated, []
 
 
 def _fallback_direct_write(
     cards: list[RawCard], errors: list[CardError]
 ) -> list[CuratedCard]:
-    """When LLM fails entirely, write cards directly without curation."""
+    """When LLM fails entirely, write cards directly without curation.
+
+    Kept for backwards compatibility with server.py direct-write fallback path.
+    """
     result = []
     for card in cards:
         body = card.context or f"{card.prefix} **{card.text}** {card.suffix}"
@@ -150,14 +250,15 @@ def _fallback_direct_write(
     return result
 
 
-def _merge_tags(existing: list[str], new: list[str]) -> list[str]:
-    """Merge two tag lists, dedup, cap at 3."""
+def _merge_tags(*tag_lists: list[str]) -> list[str]:
+    """Merge multiple tag lists, dedup, cap at 3."""
     seen = set()
     result = []
-    for tag in list(existing) + list(new):
-        if tag and tag not in seen:
-            result.append(tag)
-            seen.add(tag)
-            if len(result) >= 3:
-                break
+    for tag_list in tag_lists:
+        for tag in tag_list:
+            if tag and tag not in seen:
+                result.append(tag)
+                seen.add(tag)
+                if len(result) >= 3:
+                    return result
     return result

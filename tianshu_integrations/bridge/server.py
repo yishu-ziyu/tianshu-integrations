@@ -111,7 +111,8 @@ async def sync_recall_sticker(req: SyncRequest) -> SyncResponse:
         llm_client = MockLLMClient()
 
     try:
-        curated, errors = await curate(req.cards, llm_client=llm_client)
+        # Week 2: curate() now takes vault_path for Phase B wiki link scan
+        curated, errors = await curate(req.cards, llm_client=llm_client, vault_path=vault)
         written_files = write_batch(curated, vault)
     except Exception as e:
         return JSONResponse(

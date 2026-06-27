@@ -111,7 +111,12 @@ async def test_curate_empty_cards():
 
 @pytest.mark.asyncio
 async def test_curate_whole_batch_failure_returns_errors():
-    """If LLM.chat() raises, all cards get error + fallback direct write."""
+    """If LLM.chat() raises in Phase A, curator falls back to direct write (no crash).
+
+    Week 2 semantics: errors are NOT propagated to user; we silently use direct write
+    fallback. This is a deliberate design choice — the batch should always complete
+    even if M2.1 is down.
+    """
     class FailingClient:
         async def chat(self, prompt, max_tokens=2000):
             raise RuntimeError("LLM down")
@@ -121,6 +126,9 @@ async def test_curate_whole_batch_failure_returns_errors():
         RawCard(text="b", sourceUrl="u", timestamp=2),
     ]
     curated, errors = await curate(cards, llm_client=FailingClient())
-    assert len(errors) == 2
-    assert all("LLM down" in e.message for e in errors)
-    assert len(curated) == 2  # fallback direct write
+    # Week 2: errors are swallowed, fallback direct write kicks in
+    assert errors == []
+    assert len(curated) == 2
+    # Direct write: title = text, no tags
+    assert all(c.title in ("a", "b") for c in curated)
+    assert all(c.tags == [] for c in curated)

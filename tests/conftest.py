@@ -5,6 +5,20 @@ from pathlib import Path
 
 import pytest
 
+# Clear proxy env vars that interfere with httpx/openai SDK initialization
+for _proxy in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY",
+              "http_proxy", "https_proxy", "all_proxy"):
+    os.environ.pop(_proxy, None)
+
+
+@pytest.fixture(autouse=True)
+def _autoclear_proxy(monkeypatch):
+    """Auto-clean proxy env vars per test to avoid openai SDK init failures."""
+    for _proxy in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY",
+                  "http_proxy", "https_proxy", "all_proxy"):
+        monkeypatch.delenv(_proxy, raising=False)
+    yield
+
 
 @pytest.fixture
 def vault_path(tmp_path: Path) -> str:

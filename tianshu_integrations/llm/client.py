@@ -1,14 +1,38 @@
 """MiniMax LLM client (OpenAI protocol) + MockLLMClient for testing.
 
 MiniMax M3 supports OpenAI-compatible API at https://api.minimaxi.com/v1.
+Both M2.1 and M3 are reasoning models — they emit <think>...</think> blocks
+before the actual content. Use `extractContent()` to strip them before JSON parsing.
 This module provides:
 - MiniMaxClient: real client using openai SDK
 - MockLLMClient: for tests, accepts preset responses
+- extractContent: static helper to strip reasoning blocks
 """
 
 import os
+import re
 
 from openai import AsyncOpenAI
+
+
+def extractContent(text: str) -> str:
+    """Strip <think>...</think> reasoning blocks from LLM output.
+
+    Both MiniMax-M2.1 and MiniMax-M3 wrap their thinking in <think>...</think>
+    before the actual content. JSON parsers will fail if thinking contains
+    stray { or } characters. Call this on the raw response before parsing.
+
+    Args:
+        text: Raw assistant message content from OpenAI chat.completions.
+
+    Returns:
+        Cleaned text with thinking blocks removed and whitespace stripped.
+    """
+    if not text:
+        return ""
+    # Match <think>...</think> (non-greedy, multiline)
+    cleaned = re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL)
+    return cleaned.strip()
 
 
 class MiniMaxClient:
@@ -32,6 +56,9 @@ class MiniMaxClient:
 
     async def chat(self, prompt: str, max_tokens: int = 2000) -> str:
         """Call MiniMax M3 chat completion. Returns the assistant content.
+
+        Returns raw content (may contain <think>...</think> blocks).
+        Use `extractContent()` to strip reasoning before JSON parsing.
 
         Raises on network errors or non-2xx responses (caller handles).
         """
