@@ -17,12 +17,15 @@ class RawCard(BaseModel):
 
     Recall Sticker does not store id or tags fields — id is generated
     by the curator from timestamp; tags defaults to empty list.
+
+    Week 4 T-27: Added min_length=1 + max_length=500 to fix Week 1 P3 #4.
+    Recall Sticker UI prevents empty text, but a malicious client could send it.
     """
 
-    text: str
+    text: str = Field(..., min_length=1, max_length=500)
     prefix: str = ""
     suffix: str = ""
-    context: str = ""
+    context: str = Field(default="", max_length=2000)
     sourceUrl: str
     tags: list[str] = Field(default_factory=list)
     timestamp: int

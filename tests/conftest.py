@@ -55,3 +55,9 @@ def clear_app_state():
     # Reset START_TIME so uptime is small per test
     server.START_TIME = 9999999999.0  # far future → uptime will be negative-ish but ok
     yield
+
+@pytest.fixture(autouse=True)
+def _reset_obsidian_vault(monkeypatch):
+    """Clear OBSIDIAN_VAULT between tests to prevent order-dependent failures."""
+    monkeypatch.delenv("OBSIDIAN_VAULT", raising=False)
+    yield
