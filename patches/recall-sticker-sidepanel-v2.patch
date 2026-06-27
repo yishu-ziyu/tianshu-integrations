@@ -1,0 +1,125 @@
+diff --git a/sidepanel.html b/sidepanel.html
+index f1334e0..dd53bec 100644
+--- a/sidepanel.html
++++ b/sidepanel.html
+@@ -21,6 +21,13 @@
+       <span id="sticker-count">0</span> stickers collected
+     </div>
+ 
++    <!-- Week 2: tianshu-integrations bridge sync UI -->
++    <div id="bridge-sync-bar">
++      <input type="text" id="vault-path-input" placeholder="Obsidian vault path (e.g., ~/Desktop/知识库/知识库)" />
++      <button id="sync-to-bridge-btn">🧠 同步到 Obsidian</button>
++      <div id="bridge-status"></div>
++    </div>
++
+     <div id="filter-bar">
+       <input type="text" id="search-input" placeholder="Search stickers..." />
+       <select id="tag-filter">
+@@ -74,6 +81,9 @@
+       </div>
+     </div>
+ 
++    <script type="module" src="lib/storage-collector.js"></script>
++    <script type="module" src="lib/obsidian-exporter.js"></script>
++    <script type="module" src="lib/bridge-client.js"></script>
+     <script src="sidepanel.js"></script>
+   </body>
+ </html>
+diff --git a/sidepanel.js b/sidepanel.js
+index 7ed7b65..dac877b 100644
+--- a/sidepanel.js
++++ b/sidepanel.js
+@@ -43,8 +43,13 @@ function isSameSticker(storedSticker, targetSticker) {
+     (!targetSticker.timestamp || storedSticker.timestamp === targetSticker.timestamp);
+ }
+ 
++// tianshu-integrations: blacklist non-sticker chrome.storage keys
++const STORAGE_KEY_BLACKLIST = new Set([
++  'tags', 'obsidianVaultPath', 'lastSyncTime', 'mistake_log_v1',
++]);
++
+ function isStickerCollection(storageKey, value) {
+-  return storageKey !== STORAGE_KEYS.TAGS && Array.isArray(value);
++  return !STORAGE_KEY_BLACKLIST.has(storageKey) && Array.isArray(value);
+ }
+ 
+ document.addEventListener('DOMContentLoaded', () => {
+@@ -70,6 +75,77 @@ document.addEventListener('DOMContentLoaded', () => {
+   const assignTagSaveBtn = document.getElementById('assign-tag-save-btn');
+   const assignTagCancelBtn = document.getElementById('assign-tag-cancel-btn');
+ 
++  // Week 2: tianshu-integrations bridge sync UI
++  const vaultPathInput = document.getElementById('vault-path-input');
++  const syncToBridgeBtn = document.getElementById('sync-to-bridge-btn');
++  const bridgeStatus = document.getElementById('bridge-status');
++
++  // Load saved vault path from chrome.storage on init
++  chrome.storage.local.get(['obsidianVaultPath'], (result) => {
++    if (result.obsidianVaultPath) {
++      vaultPathInput.value = result.obsidianVaultPath;
++    }
++  });
++
++  // Save vault path on input change
++  vaultPathInput.addEventListener('change', () => {
++    const path = vaultPathInput.value.trim();
++    if (path) {
++      chrome.storage.local.set({ obsidianVaultPath: path });
++    }
++  });
++
++  // Sync button handler
++  syncToBridgeBtn.addEventListener('click', async () => {
++    const vaultPath = vaultPathInput.value.trim();
++    if (!vaultPath) {
++      bridgeStatus.textContent = '❌ 请先填写 Obsidian vault 路径';
++      bridgeStatus.style.color = '#ef4444';
++      return;
++    }
++
++    bridgeStatus.textContent = '⏳ 正在同步...';
++    bridgeStatus.style.color = '#3b82f6';
++    syncToBridgeBtn.disabled = true;
++
++    try {
++      // Dynamic import to load lib modules
++      const [{ collectAndSync }, bridgeClient] = await Promise.all([
++        import('./lib/storage-collector.js'),
++        import('./lib/bridge-client.js'),
++      ]);
++
++      // First check bridge health
++      const health = await bridgeClient.checkBridgeHealth();
++      if (!health.ok) {
++        bridgeStatus.textContent = `⚠️ bridge 不可达 (${health.error}),降级到本地下载`;
++        bridgeStatus.style.color = '#f59e0b';
++      }
++
++      const result = await collectAndSync({ vaultPath });
++
++      if (result.mode === 'online') {
++        const synced = result.response.curated?.length || result.collectedCount;
++        bridgeStatus.textContent = `✅ 已同步 ${synced} 张卡片`;
++        bridgeStatus.style.color = '#10b981';
++      } else if (result.mode === 'offline_fallback') {
++        bridgeStatus.textContent = `📥 bridge 不可达,已下载 ${result.offlinePath},请手动拖入 Obsidian`;
++        bridgeStatus.style.color = '#f59e0b';
++      } else {
++        bridgeStatus.textContent = `❌ ${result.error || '同步失败'}`;
++        bridgeStatus.style.color = '#ef4444';
++      }
++
++      // Save last sync time
++      chrome.storage.local.set({ lastSyncTime: Date.now() });
++    } catch (err) {
++      bridgeStatus.textContent = `❌ 错误: ${err.message}`;
++      bridgeStatus.style.color = '#ef4444';
++    } finally {
++      syncToBridgeBtn.disabled = false;
++    }
++  });
++
+   let allTags = [];
+   let allStickers = [];
+   let filteredStickers = [];
