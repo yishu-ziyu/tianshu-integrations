@@ -1,10 +1,32 @@
 # Tianshu Integrations · 联动 Recall Sticker / Deep Reader 与 Obsidian Vault
 
-> **GitHub**: [yishu-ziyu/tianshu-integrations](https://github.com/yishu-ziyu/tianshu-integrations)
+> **GitHub**: [yishu-ziyu/tianshu-integrations](https://github.com/yishu-ziyu/tianshu-integrations) (public)
+> **本地开发**: `~/Developer/tianshu-integrations/` (单一开发源)
 > **代号**: Tianshu Integrations(天枢联动)
 > **父项目**: [Tianshu](~/Documents/trae_projects/api/) — Mini-Agent + Deep Reader
 > **当前状态**: **Week 1 完成 · 联动 2 MVP 跑通 · 58 测试全过 · QA PASS**
 > **日期**: 2026-06-27
+
+---
+
+## 📍 工作流(单源真相)
+
+只有一个开发地方:`~/Developer/tianshu-integrations/`。改完代码 → `git commit` → `git push` 同步到 GitHub。
+
+```bash
+cd ~/Developer/tianshu-integrations
+
+# 修改代码
+git add -A
+git commit -m "feat: ..."
+git push  # 自动同步到 GitHub
+
+# 跑测试
+source .venv/bin/activate
+pytest tests/ -v
+```
+
+> **不要**在其他地方再 clone 或新建仓库。所有的开发迭代都在这个目录。
 
 ---
 
