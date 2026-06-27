@@ -1,5 +1,7 @@
 """Tests for Obsidian vault writer."""
 
+from datetime import datetime
+
 from tianshu_integrations.bridge.schemas import CuratedCard
 from tianshu_integrations.obsidian.writer import render_card_section, sanitize_source_url, write_batch
 
@@ -86,6 +88,92 @@ def test_write_batch_empty_curated_returns_empty(tmp_path):
     files = write_batch([], str(tmp_path))
     assert files == []
     assert not (tmp_path / "Inbox").exists()
+
+
+# === Week 2 tests: frontmatter merge + wiki-link rendering ===
+
+def test_write_batch_merges_frontmatter_tags(tmp_path):
+    """Week 2 fix: when file exists, MERGE tags (not replace)."""
+    from tianshu_integrations.obsidian.writer import parse_frontmatter, merge_frontmatter_tags
+
+    fm1 = {"date": "2026-06-27", "tags": ["k8s", "old-tag"], "source": "recall-sticker-sidepanel"}
+    new_tags = ["k8s", "new-tag"]
+    merged = merge_frontmatter_tags(fm1, new_tags)
+    assert "k8s" in merged["tags"]
+    assert "old-tag" in merged["tags"]
+    assert "new-tag" in merged["tags"]
+    assert merged["tags"][:2] == ["k8s", "old-tag"]  # existing order preserved
+
+
+def test_write_batch_second_sync_merges_frontmatter(tmp_path):
+    """Real write_batch scenario: second sync merges tags with first."""
+    # First write
+    write_batch(
+        [CuratedCard(cardId="1", title="t1", body="b1", tags=["k8s", "old"])],
+        str(tmp_path),
+    )
+    # Second write
+    write_batch(
+        [CuratedCard(cardId="2", title="t2", body="b2", tags=["k8s", "new"])],
+        str(tmp_path),
+    )
+    today = datetime.now().strftime("%Y-%m-%d")
+    file_path = tmp_path / "Inbox" / f"{today}-recall.md"
+    content = file_path.read_text(encoding="utf-8")
+    # Both old and new tags should be in frontmatter
+    assert "old" in content
+    assert "new" in content
+    assert "k8s" in content
+    # Both sections should be in body
+    assert "## t1" in content
+    assert "## t2" in content
+
+
+def test_render_card_section_includes_wiki_links():
+    """Week 2: card with wikiLinks renders as '## title\\n\\nbody\\n\\n相关: [[a]] [[b]]'"""
+    from tianshu_integrations.obsidian.writer import render_card_section
+
+    card = CuratedCard(
+        cardId="1", title="eBPF", body="kernel",
+        wikiLinks=["Projects/tianshu", "Concepts/Linux"],
+    )
+    md = render_card_section(card)
+    assert "## eBPF" in md
+    assert "相关: [[Projects/tianshu]] [[Concepts/Linux]]" in md
+
+
+def test_render_card_section_normalizes_wiki_links():
+    """wikiLinks without [[ ]] get auto-wrapped."""
+    from tianshu_integrations.obsidian.writer import render_card_section
+
+    card = CuratedCard(
+        cardId="1", title="eBPF", body="kernel",
+        wikiLinks=["Projects/tianshu", "Concepts/Linux"],  # no brackets
+    )
+    md = render_card_section(card)
+    # CuratedCard normalizes in curate.py, but renderer's job is just output
+    # If links come in already [[]] form, render as-is
+    # If they come bare, render bare (Phase B normalizes upstream)
+    assert "[[Projects/tianshu]]" in md
+    assert "[[Concepts/Linux]]" in md
+
+
+def test_parse_frontmatter_extracts_tags_list():
+    """parse_frontmatter handles YAML-style [a, b, c] list."""
+    from tianshu_integrations.obsidian.writer import parse_frontmatter
+
+    text = """---
+date: 2026-06-27
+tags: [k8s, linux, kernel]
+source: recall-sticker-sidepanel
+---
+
+# Content
+"""
+    fm, body = parse_frontmatter(text)
+    assert fm["date"] == "2026-06-27"
+    assert fm["tags"] == ["k8s", "linux", "kernel"]
+    assert "Content" in body
 
 
 def test_write_batch_sanitizes_source_url_in_curated_body():

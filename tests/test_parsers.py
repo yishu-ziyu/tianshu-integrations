@@ -75,3 +75,66 @@ def test_parse_handles_null():
     result = parse_curation_response(raw)
     assert result["tags"] == []
     assert result["rewrites"] == []
+
+
+# === Week 2 robustness tests ===
+
+def test_parse_trailing_comma_lenient():
+    """Layer 2: lenient JSON parse allows trailing comma."""
+    raw = '{"tags": ["a", "b",], "rewrites": [],}'
+    result = parse_curation_response(raw)
+    assert "a" in result["tags"]
+    assert "b" in result["tags"]
+
+
+def test_parse_truncated_json_recovers():
+    """Layer 5: truncated JSON recovers tags from valid prefix."""
+    raw = '{"tags": ["a", "b"], "rewrites": [{"cardId":'  # truncated mid-value
+    result = parse_curation_response(raw)
+    # Layer 3 should match the outer {...} and parse successfully
+    assert "a" in result["tags"]
+    assert "b" in result["tags"]
+
+
+def test_parse_normalizes_week2_schema():
+    """Phase A/B schema fields are normalized even if missing."""
+    raw = '{"batch_tags": ["k8s"], "card_tags": {"1": ["linux"]}, "merges": []}'
+    result = parse_curation_response(raw)
+    assert result["batch_tags"] == ["k8s"]
+    assert result["card_tags"] == {"1": ["linux"]}
+    assert result["merges"] == []
+
+
+def test_parse_backfills_batch_tags_from_tags():
+    """If only top-level 'tags' present (old schema), backfill batch_tags."""
+    raw = '{"tags": ["a", "b", "c"]}'
+    result = parse_curation_response(raw)
+    assert result["tags"] == ["a", "b", "c"]
+    assert result["batch_tags"] == ["a", "b", "c"][:3]
+
+
+def test_parse_empty_string():
+    raw = ""
+    result = parse_curation_response(raw)
+    assert result == {"tags": [], "rewrites": []}
+
+
+def test_parse_handles_wikilinks_field():
+    raw = '{"tags": ["k8s"], "wikiLinks": ["[[Projects/tianshu]]", "[[Concepts/Kubernetes]]"]}'
+    result = parse_curation_response(raw)
+    assert "[[Projects/tianshu]]" in result["wikiLinks"]
+
+
+def test_parse_handles_complex_merges():
+    """MergeProposal structure preserved through normalize."""
+    raw = '''{
+        "batch_tags": ["k8s"],
+        "card_tags": {"1_eBPF": ["linux"]},
+        "merges": [
+            {"source": "1_eBPF", "target": "2_sidecar", "reason": "kernel concepts"}
+        ]
+    }'''
+    result = parse_curation_response(raw)
+    assert len(result["merges"]) == 1
+    assert result["merges"][0]["source"] == "1_eBPF"
+    assert result["merges"][0]["reason"] == "kernel concepts"
