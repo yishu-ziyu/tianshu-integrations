@@ -1,0 +1,68 @@
+diff --git a/api/deep-reader/src/lib/minimax.ts b/api/deep-reader/src/lib/minimax.ts
+index cdb110e7..32f1e1c5 100644
+--- a/api/deep-reader/src/lib/minimax.ts
++++ b/api/deep-reader/src/lib/minimax.ts
+@@ -1,4 +1,4 @@
+-// src/lib/minimax.ts - MiniMax API 客户端
++// src/lib/minimax.ts - MiniMax API 客户端 (Week 3: OpenAI 协议 + M3)
+ 
+ import { AIResponse, ReadingGuide } from './types';
+ 
+@@ -9,9 +9,20 @@ interface MiniMaxConfig {
+ 
+ const DEFAULT_CONFIG: MiniMaxConfig = {
+   apiKey: import.meta.env.VITE_MINIMAX_API_KEY || '',
+-  apiHost: import.meta.env.VITE_MINIMAX_API_HOST || 'https://api.minimaxi.com/anthropic',
++  apiHost: import.meta.env.VITE_MINIMAX_API_HOST || 'https://api.minimaxi.com/v1',
+ };
+ 
++/**
++ * Strip <think>...</think> reasoning blocks from LLM output.
++ * Both MiniMax-M2.1 and MiniMax-M3 wrap their thinking in <think>...</think>
++ * before the actual content. JSON parsers will fail if thinking contains
++ * stray { or } characters. Call this on the raw response before parsing.
++ */
++function extractContent(text: string): string {
++  if (!text) return '';
++  return text.replace(/<think>.*?<\/think>\s*/gs, '').trim();
++}
++
+ export class MiniMaxClient {
+   private config: MiniMaxConfig;
+ 
+@@ -70,14 +81,14 @@ ${content.slice(0, 3000)}`;
+ 
+   private async callAPI(prompt: string, maxTokens: number): Promise<string> {
+     try {
+-      const response = await fetch(`${this.config.apiHost}/v1/messages`, {
++      const response = await fetch(`${this.config.apiHost}/chat/completions`, {
+         method: 'POST',
+         headers: {
+           'Content-Type': 'application/json',
+           'Authorization': `Bearer ${this.config.apiKey}`,
+         },
+         body: JSON.stringify({
+-          model: 'MiniMax-M2.1',
++          model: 'MiniMax-M3',
+           max_tokens: maxTokens,
+           messages: [
+             {
+@@ -101,11 +112,13 @@ ${content.slice(0, 3000)}`;
+   }
+ 
+   private extractTextFromResponse(data: Record<string, unknown>): string {
+-    const content = data.content as unknown[];
+-    if (Array.isArray(content) && content.length > 0) {
+-      const firstBlock = content[0] as { type?: string; text?: string };
+-      if (firstBlock?.type === 'text' && firstBlock.text) {
+-        return firstBlock.text;
++    // Week 3: OpenAI chat.completions format
++    const choices = data.choices as Array<{ message?: { content?: string } }>;
++    if (Array.isArray(choices) && choices.length > 0) {
++      const content = choices[0]?.message?.content;
++      if (content) {
++        // Strip <think>...</think> reasoning blocks (M2.1/M3)
++        return extractContent(content);
+       }
+     }
+     return '';
