@@ -313,6 +313,86 @@ MINIMAX_API_KEY="sk-real-key" tianshu-bridge --port 7733 --vault ~/Desktop/知�
 
 ---
 
+---
+
+## 🆕 Week 2 (shipped) — 真实 M2.1 + 智能整理
+
+### Phase A + B 两阶段 curator
+
+- **Phase A**: 1 次 M2.1 call 拿 batch_tags + per-card tags + merges
+- **Phase B**: per-card 1 次 M2.1 call 拿 wiki links(扫 vault 已有的 .md)
+- **per-card 容错**: 1 张卡失败不阻塞整批
+
+### M2.1/M3 reasoning block handling
+
+- Week 1 parser 假设 plain content — 实际 M2.1/M3 输出 ` ̶t̶h̶i̶n̶k̶...̶ ̶` 块
+- **修复**: `extractContent()` 在 parse 前 strip
+
+### Frontmatter merge on append
+
+- Week 1 是新 sync 替换旧的 — 修复为 union(保留所有历史的 tag)
+
+### Recall Sticker 端
+
+- Side Panel 加 "🧠 同步到 Obsidian" 按钮 + vault path input
+- 离线 fallback 用 Blob URL(非 data URL) + chrome.downloads
+
+---
+
+## 🆕 Week 3 (shipped) — 联动 1 完整
+
+### Deep Reader 出题
+
+- T-17 port focus-quiz 的 3 级 fallback(Readability + Turndown + DOM candidates)
+- T-19 QuizGenerator: M2.1 buildPrompt + 4 层 JSON fallback + port normalizeP1Question
+- **修复**: T-19 max_tokens 2000→4000(M2.1 思考用 2000 tokens 不够输出 JSON)
+
+### 错题本 + Anki 导出
+
+- T-22 MistakeStore + chrome.storage 持久化 + LRU 50/source
+- T-23 Anki CSV 导出(port focus-quiz formatMistakesAsAnkiCsv)
+
+### Deep Reader 协议统一 (T-13b)
+
+- **改前**: Anthropic 协议 + M2.1
+- **改后**: OpenAI 协议 + M3(与 Tianshu Bridge 一致)
+- 加 `chat()` 通用方法 + `extractContent()` thinking strip
+
+---
+
+## 🆕 Week 4 (shipped) — 收尾
+
+### 端到端 demo (T-24/T-25)
+
+- `docs/RECORDING-WEEK-2-3-4.md` 6 场景文字脚本 + 截图位置
+- 实测: 3 卡 → 21s → .md 含 Phase A tags + Phase B wiki links
+- bridge 进程 kill → 客户端降级 chrome.downloads 离线下载
+
+### 错误路径覆盖 (T-27, 12 scenarios)
+
+- M2.1 non-JSON → 4-layer fallback
+- M2.1 truncated JSON → Layer 5 recovery
+- vault 路径错 / 不可写 / = /etc → 400
+- bridge 503 → 客户端降级
+- Readability 失败 → ContentExtractorV2 dom-innertext fallback
+- Anki Cloze 注入 → sanitize
+- M2.1 thinking → extractContent 剥离
+- **修复**: Pydantic RawCard.text min_length=1 max_length=500(Week 1 P3 #4)
+
+### 性能基线 (T-28)
+
+| 操作 | 目标 | 实测 |
+|------|------|------|
+| 1 卡 mock | < 500ms | ~250ms |
+| 5 卡 mock | < 1s | ~680ms |
+| 100 卡 mock | < 10s | ~7.5s |
+| 5 卡真 M2.1 | < 30s | ~21s |
+| bridge 启动 | < 2s | ✓ |
+
+详见 `docs/PERFORMANCE-WEEK-2-3-4.md`
+
+---
+
 ## 引用
 
 - [[Project Charter|PROJECT_CHARTER.md]]
