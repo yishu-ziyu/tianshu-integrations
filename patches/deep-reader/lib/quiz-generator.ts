@@ -16,9 +16,9 @@ const PROMPT = `你是认知压力测试教练。基于以下文章生成 3 道�
 - 每道题 4 个选项 + 1 个正确答案(用 0-3 索引)
 - 给出 evidenceQuote(原文引用, ≤50 字)
 - 给出 explanation(为什么对/错)
-- 返回严格 JSON 数组: [{type, question, options, correct, explanation, evidenceQuote, sourceHint}]
-- 题型字段必须 ∈ ['trap', 'counterfactual', 'transfer']
-- 只返回 JSON 数组,不要任何额外文字`;
+- 返回严格 JSON 数组: [{"type": "...", "question": "...", "options": ["A", "B", "C", "D"], "correct": 0, "explanation": "...", "evidenceQuote": "...", "sourceHint": "..."}]
+- 题型字段必须 ∈ ["trap", "counterfactual", "transfer"]
+- 直接返回 JSON 数组,不要额外文字或思考过程`;
 
 const ALLOWED_TYPES: QuestionType[] = ['trap', 'counterfactual', 'transfer'];
 
@@ -34,7 +34,7 @@ export class QuizGenerator {
     const truncated = content.slice(0, 6000);
     const prompt = PROMPT.replace('{content}', truncated);
     try {
-      const raw = await minimaxClient.chat(prompt, 2000);
+      const raw = await minimaxClient.chat(prompt, 4000);
       const parsed = parseQuizResponse(raw);
       return parsed
         .map((q, i) => normalizeP1Question(q, i))
