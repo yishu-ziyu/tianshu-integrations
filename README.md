@@ -1,5 +1,6 @@
 # Tianshu Integrations · 联动 Recall Sticker / Deep Reader 与 Obsidian Vault
 
+> **GitHub**: [yishu-ziyu/tianshu-integrations](https://github.com/yishu-ziyu/tianshu-integrations)
 > **代号**: Tianshu Integrations(天枢联动)
 > **父项目**: [Tianshu](~/Documents/trae_projects/api/) — Mini-Agent + Deep Reader
 > **当前状态**: **Week 1 完成 · 联动 2 MVP 跑通 · 58 测试全过 · QA PASS**
