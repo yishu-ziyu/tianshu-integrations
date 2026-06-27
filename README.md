@@ -4,8 +4,8 @@
 > **本地开发**: `~/Developer/tianshu-integrations/` (单一开发源)
 > **代号**: Tianshu Integrations(天枢联动)
 > **父项目**: [Tianshu](~/Documents/trae_projects/api/) — Mini-Agent + Deep Reader
-> **当前状态**: **Week 1 完成 · 联动 2 MVP 跑通 · 58 测试全过 · QA PASS**
-> **日期**: 2026-06-27
+> **当前状态**: **Week 1-4 全部 ship · 98 pytest pass · 2 个联动全部完成**
+> **日期**: 2026-06-28
 
 ---
 
