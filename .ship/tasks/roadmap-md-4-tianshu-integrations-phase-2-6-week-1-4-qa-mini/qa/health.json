@@ -1,8 +1,0 @@
-{
-    "status": "ok",
-    "version": "0.1.0",
-    "vaultWritable": true,
-    "minimaxConfigured": true,
-    "currentVault": "/tmp/qa-vault",
-    "uptimeSec": 1
-}

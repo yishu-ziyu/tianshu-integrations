@@ -23,3 +23,6 @@ build/
 .vscode/
 .idea/
 .DS_Store
+
+# Yishuship workflow artifacts (private, not for public repo)
+.ship/
