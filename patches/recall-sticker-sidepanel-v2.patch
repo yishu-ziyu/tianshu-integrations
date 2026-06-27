@@ -1,33 +1,5 @@
-diff --git a/sidepanel.html b/sidepanel.html
-index f1334e0..dd53bec 100644
---- a/sidepanel.html
-+++ b/sidepanel.html
-@@ -21,6 +21,13 @@
-       <span id="sticker-count">0</span> stickers collected
-     </div>
- 
-+    <!-- Week 2: tianshu-integrations bridge sync UI -->
-+    <div id="bridge-sync-bar">
-+      <input type="text" id="vault-path-input" placeholder="Obsidian vault path (e.g., ~/Desktop/知识库/知识库)" />
-+      <button id="sync-to-bridge-btn">🧠 同步到 Obsidian</button>
-+      <div id="bridge-status"></div>
-+    </div>
-+
-     <div id="filter-bar">
-       <input type="text" id="search-input" placeholder="Search stickers..." />
-       <select id="tag-filter">
-@@ -74,6 +81,9 @@
-       </div>
-     </div>
- 
-+    <script type="module" src="lib/storage-collector.js"></script>
-+    <script type="module" src="lib/obsidian-exporter.js"></script>
-+    <script type="module" src="lib/bridge-client.js"></script>
-     <script src="sidepanel.js"></script>
-   </body>
- </html>
 diff --git a/sidepanel.js b/sidepanel.js
-index 7ed7b65..dac877b 100644
+index 7ed7b65..dd62efb 100644
 --- a/sidepanel.js
 +++ b/sidepanel.js
 @@ -43,8 +43,13 @@ function isSameSticker(storedSticker, targetSticker) {
@@ -45,7 +17,7 @@ index 7ed7b65..dac877b 100644
  }
  
  document.addEventListener('DOMContentLoaded', () => {
-@@ -70,6 +75,77 @@ document.addEventListener('DOMContentLoaded', () => {
+@@ -70,6 +75,76 @@ document.addEventListener('DOMContentLoaded', () => {
    const assignTagSaveBtn = document.getElementById('assign-tag-save-btn');
    const assignTagCancelBtn = document.getElementById('assign-tag-cancel-btn');
  
@@ -84,10 +56,9 @@ index 7ed7b65..dac877b 100644
 +
 +    try {
 +      // Dynamic import to load lib modules
-+      const [{ collectAndSync }, bridgeClient] = await Promise.all([
-+        import('./lib/storage-collector.js'),
-+        import('./lib/bridge-client.js'),
-+      ]);
++      const bridgeClient = await import('./lib/bridge-client.js');
++      // collectAndSync is exported from bridge-client.js (which re-exports collectAllStickers internally)
++      const { collectAndSync } = bridgeClient;
 +
 +      // First check bridge health
 +      const health = await bridgeClient.checkBridgeHealth();
