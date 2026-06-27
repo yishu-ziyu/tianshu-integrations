@@ -40,6 +40,8 @@ fi
 
 export MINIMAX_API_KEY
 export OBSIDIAN_VAULT="$VAULT"
+export LLM_BASE_URL="${LLM_BASE_URL:-}"
+export LLM_MODEL="${LLM_MODEL:-}"
 
 # --- Start bridge ---
 exec "$VENV_PYTHON" -m tianshu_integrations.bridge.cli --port "$PORT" --vault "$VAULT"
