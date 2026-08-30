@@ -94,8 +94,8 @@ pytest tests/ -v
 ### 2. 配置环境变量
 
 ```bash
-# 必须 - MiniMax API key(用户已提供: sk-cp-...)
-export MINIMAX_API_KEY="sk-cp-gC-DLoYsHw4NqMP4zwyLi7Uk-Yyu_jWmlP3M6053rZl-w1qvE0FvS7Yyh844fabF9X5IXYj8JYwiGV6DNLibfHLCAloC_k1MSfYyqjxhWqwlyu8pQZzG6zQ"
+# 必须 - MiniMax API key(填入你自己的 key，勿提交到仓库)
+export MINIMAX_API_KEY="sk-cp-xxxxxxxxxxxxxxxxxxxxxxxx"
 
 # 可选 - 自定义 vault 路径(默认 ~/Desktop/知识库/知识库)
 export OBSIDIAN_VAULT="$HOME/Documents/obsidian-vault"
