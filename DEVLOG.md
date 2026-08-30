@@ -196,7 +196,7 @@
 
 ### 4. MiniMax API key 是真的可用
 
-用户提供 `sk-cp-gC-DLoYsHw4NqMP4zwyLi7Uk-Yyu_jWmlP3M6053rZl-w1qvE0FvS7Yyh844fabF9X5IXYj8JYwiGV6DNLibfHLCAloC_k1MSfYyqjxhWqwlyu8pQZzG6zQ` 后,bridge 默认走 OpenAI 协议连 `api.minimaxi.com/v1`。Week 2 真实 M2.1 prompt 测试时直接用这个 key 即可。
+用户提供 MiniMax API key（已配置到本地 `.env`，此处不记录 key 内容）后,bridge 默认走 OpenAI 协议连 `api.minimaxi.com/v1`。Week 2 真实 M2.1 prompt 测试时直接用这个 key 即可。
 
 **注意**:Token Plan 走 `/anthropic` 端点(per memory),Week 2 跑真实 API 时要确认 server.py base_url 是这个而不是 `/v1`。需要实际打一次 API 验证。
 
